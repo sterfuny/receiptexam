@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
+
+	"github.com/sterfuny/receiptexam/side"
 )
 
 type ChoiceSingleQ struct {
@@ -26,7 +28,7 @@ func NewChoiceSingle(q string, opts []string) *ChoiceSingleQ {
 
 func (q *ChoiceSingleQ) Render() string {
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("%s (选择题)\n\n", q.question))
+	fmt.Fprintf(&sb, "%s\n\n", q.question)
 
 	for i, opt := range q.options {
 		cursor := " "
@@ -37,14 +39,12 @@ func (q *ChoiceSingleQ) Render() string {
 		if i == q.cursor {
 			prefix = "●"
 		}
-		sb.WriteString(fmt.Sprintf("%s [%s] %s\n", cursor, prefix, opt))
+		fmt.Fprintf(&sb, "%s [%s] %s\n", cursor, prefix, opt)
 	}
 
-	if q.done {
-		sb.WriteString(fmt.Sprintf("\n✅ 已选择: %s", q.answer))
-	} else {
-		sb.WriteString("\n↑/↓ 移动 • Enter 确认")
-	}
+	sb.WriteString("\n")
+	sb.WriteString(side.Tip("↑/↓ 移动", "Enter 确定"))
+
 	return sb.String()
 }
 
