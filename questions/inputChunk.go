@@ -55,7 +55,7 @@ type InputChunkQ struct {
 }
 
 // 创建多输入框题目
-func NewInputChunkQ(question string, configs []InputConfig, template string) *InputChunkQ {
+func NewInputChunk(question string, configs []InputConfig, template string) *InputChunkQ {
 	inputs := make([]*textinput.Model, len(configs))
 	for i, cfg := range configs {
 		ti := newInput(cfg)
@@ -92,49 +92,47 @@ func newInput(cfg InputConfig) textinput.Model {
 
 
 // 构建类型列表
+// example:	"name is _{0}_, age is _{1}_"
+// else		"I'm _{0}_, _{0}_ is me"
 func buildParagraph(inputs []*textinput.Model, template string) []Chunk {
-	// 示例模板："请问您的名字是 {0} ，年龄 {1} 岁，喜欢的颜色是 {2} ，来自 {3}。"
 	leafovers := template
-	var chunks []Chunk
+	var chunks []Chunk = make([]Chunk, 0)
 
 	for len(leafovers) > 0 {
 		// 找 _{ 的位置
 		start := strings.Index(leafovers, "_{")
 		if start == -1 {
-			if leafovers != "" {
-				chunks = append(chunks, Chunk{Kind: textChunk,Text: leafovers})
-			}
+			chunks = append(chunks, Chunk{
+					Kind: textChunk,Text: leafovers,
+				},
+			)
 			break
 		} else if start > 0 {
-			chunks = append(chunks, Chunk{Kind: textChunk,Text: leafovers[:start]})
+			chunks = append(chunks, Chunk{// _{ 前的内容
+					Kind: textChunk,Text: leafovers[:start],
+				},
+			)
 		}
 
 		// 从 _{ 之后找 }_ 的位置
-		rest := leafovers[start+2:] // 跳过 "_{"
+		rest := leafovers[start+2:] // 跳过 _{
 		end := strings.Index(rest, "}_")
 		if end == -1 {
-			// 没有闭合标记
 			if leafovers != "" {
-				chunks = append(chunks, Chunk{Kind: textChunk,Text: leafovers})
+				chunks = append(chunks, Chunk{
+						Kind: textChunk,Text: rest,
+					},
+				)
 			}
 			break
-		}
-
-		// 标记前的字符
-		if start > 0 {
-			chunks = append(chunks, Chunk{Kind: textChunk,Text: leafovers[:start]})
-		}
-
-		// 数字部分
-		numStr := strings.TrimSpace(rest[:end])
-		if num, err := strconv.Atoi(numStr); err == nil {
-			chunks = append(
-				chunks, Chunk{
-					Kind: editChunk,
-					Input: inputs[num],
-				})
-		} else {
-			// chunks = append(chunks, numStr)
+		} else if end > 0 {
+			// 数字部分
+			numStr := strings.TrimSpace(rest[:end])
+			if num, err := strconv.Atoi(numStr); err == nil {
+				chunks = append(
+					chunks, Chunk{Kind: editChunk, Input: inputs[num]},
+				)
+			}
 		}
 		leafovers = rest[end+2:] // 跳过 "}_"
 	}
